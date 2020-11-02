@@ -67,9 +67,16 @@ def sample_random_data(dataset, num=10):
     data = list(map(list, zip(*data)))
     return torch.stack(data[0]), data[1]
 
+def fetch_data(dataset, indices):
+    data = [dataset[idx] for idx in indices]
+    data = list(map(list, zip(*data)))
+    return torch.stack(data[0]), data[1]
+
 def show_images(images, titles=None, ncols_per_row=5):
     n = len(images)
     nrows = n//ncols_per_row
+    if nrows < 1:
+        nrows = 1
     figs, axes = plt.subplots(
         nrows=nrows,
         ncols=ncols_per_row,
@@ -147,12 +154,18 @@ def make_dataloader(datasets: dict, batch_size: int):
     return loader
     
 
-def simulate_scheduler(scheduler, num_epochs):
+def simulate_scheduler(gamma, num_epochs):
     lrs = []
+    dummy_model = nn.Linear(1, 1)
+    dummy_optimizer = torch.optim.SGD(dummy_model.parameters(), 0.1)
+    dummy_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        dummy_optimizer, gamma=gamma
+    )
+    
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for _ in range(num_epochs):
-            scheduler.step()
-            lrs.append(scheduler.get_lr()[0])
+            dummy_scheduler.step()
+            lrs.append(dummy_scheduler.get_lr()[0])
     
     return lrs
