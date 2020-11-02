@@ -1,5 +1,53 @@
+import warnings
 from matplotlib import pyplot as plt
+
 import torch
+from torch import nn
+
+from torchvision import transforms as T
+from torchvision import datasets as D
+
+
+
+class BaselineModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(
+            in_channels=3, out_channels=16,
+            kernel_size=3, stride=1, padding=1
+        )
+        self.relu1 = nn.ReLU(inplace=True)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv2 = nn.Conv2d(16, 32, 3, 1, 1)
+        self.relu2 = nn.ReLU(inplace=True)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv3 = nn.Conv2d(32, 64, 3, 1, 1)
+        self.relu3 = nn.ReLU(inplace=True)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+        self.fc1 = nn.Linear(in_features=64 * 4 * 4, out_features=64)
+        self.fc2 = nn.Linear(64, 10)
+    
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.maxpool1(x)
+        
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.maxpool2(x)
+        
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.maxpool3(x)
+        
+        x = x.flatten(start_dim=1)
+        
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
 
 def invest_size(inputs, layer):
     print(f'{"input shape":^70}')
@@ -66,3 +114,45 @@ def test_step(model, input, target=None, criterion=None, device=None):
         loss = criterion(out, target)
     
     return out, loss
+
+def get_cifar10_dataset(random_crop=False):
+    transform = T.Compose([T.Resize((32, 32)), T.ToTensor()])
+    if random_crop:
+        train_transform = T.Compose([
+            T.RandomResizedCrop(32, scale=[0.5, 1.0]),
+            T.ToTensor()
+        ])
+    else:
+        train_transform = transform
+    
+    datasets = {
+        'train': D.CIFAR10(
+            'data', train=True, transform=train_transform, download=True
+        ),
+        'test': D.CIFAR10(
+            'data', train=False, transform=transform
+        )
+    }
+    return datasets
+
+def make_dataloader(datasets: dict, batch_size: int):
+    loader = {
+        key: torch.utils.data.DataLoader(
+            datasets[key],
+            batch_size=batch_size,
+            shuffle=key=='train'
+        )
+        for key in datasets
+    }
+    return loader
+    
+
+def simulate_scheduler(scheduler, num_epochs):
+    lrs = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for _ in range(num_epochs):
+            scheduler.step()
+            lrs.append(scheduler.get_lr()[0])
+    
+    return lrs
