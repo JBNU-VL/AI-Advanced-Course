@@ -5,3 +5,4 @@
 4. Learning rate scheduling
 5. Data augmentation
 6. 자신의 모델 훈련해보기
+7. ResNet / VGG 모델 훈련해보기
