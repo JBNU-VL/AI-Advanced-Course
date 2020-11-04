@@ -154,12 +154,12 @@ def make_dataloader(datasets: dict, batch_size: int):
     return loader
     
 
-def simulate_scheduler(gamma, num_epochs):
+def simulate_scheduler(gamma, num_epochs, schd=torch.optim.lr_scheduler.ExponentialLR, **kwargs):
     lrs = []
     dummy_model = nn.Linear(1, 1)
     dummy_optimizer = torch.optim.SGD(dummy_model.parameters(), 0.1)
-    dummy_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-        dummy_optimizer, gamma=gamma
+    dummy_scheduler = schd(
+        dummy_optimizer, gamma=gamma, **kwargs
     )
     
     with warnings.catch_warnings():
